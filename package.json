@@ -10,10 +10,12 @@
     "check": "tsc --noEmit",
     "migrate:local": "wrangler d1 migrations apply personal-media --local",
     "migrate:remote": "wrangler d1 migrations apply personal-media --remote",
-    "test": "vitest run"
+    "test": "vitest run --coverage",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
+    "@vitest/coverage-v8": "^3.2.7",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
     "wrangler": "^4.124.0"

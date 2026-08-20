@@ -1,6 +1,8 @@
 const ALLOWED_ORIGINS = [
   "https://ingest.hodgeluke.com",
   "https://media.hodgeluke.com",
+  "https://hodgeluke.com",
+  "https://www.hodgeluke.com",
   "https://dsamuelhodge.github.io",
   "http://127.0.0.1:8787",
   "http://localhost:8787",

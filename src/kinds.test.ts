@@ -1,8 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { kindFromMimeAndName, kindNeedsWorkflow, originalKey, resolveKind, sanitizedExtension } from "./kinds";
+import {
+  extensionOf,
+  isKind,
+  kindFromMimeAndName,
+  kindNeedsWorkflow,
+  markdownKey,
+  originalKey,
+  resolveKind,
+  sanitizedExtension,
+  transcriptKey,
+  vttKey,
+} from "./kinds";
 import { publicUrls } from "./urls";
 
 describe("kindFromMimeAndName", () => {
+  it("treats charset on MIME as image and unknown names as null", () => {
+    expect(kindFromMimeAndName("image/jpeg; charset=binary", "x")).toBe("image");
+    expect(kindFromMimeAndName("application/zip", "archive.zip")).toBeNull();
+    expect(kindFromMimeAndName("", "file")).toBeNull();
+  });
+
   it("maps common types from MIME", () => {
     expect(kindFromMimeAndName("image/jpeg", "hero.jpg")).toBe("image");
     expect(kindFromMimeAndName("video/mp4", "clip.mp4")).toBe("video");
@@ -47,6 +64,9 @@ describe("keys and public urls", () => {
   it("builds original keys by kind", () => {
     expect(originalKey("image", "abc", "hero.PNG")).toBe("originals/images/abc.png");
     expect(originalKey("audio", "abc", "memo.m4a")).toBe("originals/audio/abc.m4a");
+    expect(originalKey("video", "abc", "clip")).toBe("originals/video/abc.mp4");
+    expect(originalKey("audio", "abc", "memo")).toBe("originals/audio/abc.m4a");
+    expect(originalKey("pdf", "abc", "doc")).toBe("originals/pdfs/abc.pdf");
   });
 
   it("sanitizes unsafe extensions", () => {
@@ -79,6 +99,15 @@ describe("keys and public urls", () => {
     expect(urls.preview).toBe("https://media.hodgeluke.com/originals/video/abc.mp4");
   });
 
+  it("exports derived keys", () => {
+    expect(markdownKey("x")).toBe("derived/markdown/x.md");
+    expect(transcriptKey("x")).toBe("derived/transcripts/x.md");
+    expect(vttKey("x")).toBe("derived/transcripts/x.vtt");
+    expect(extensionOf("noext")).toBe("");
+    expect(isKind(null)).toBe(false);
+    expect(isKind("image")).toBe(true);
+  });
+
   it("omits derived urls when keys are missing", () => {
     const urls = publicUrls({
       origin: "https://media.hodgeluke.com",
@@ -88,5 +117,17 @@ describe("keys and public urls", () => {
     });
     expect(urls.transcript).toBe("https://media.hodgeluke.com/derived/transcripts/abc.md");
     expect(urls.vtt).toBeUndefined();
+  });
+
+  it("builds markdown and vtt public urls", () => {
+    const urls = publicUrls({
+      origin: "https://media.hodgeluke.com",
+      kind: "pdf",
+      originalKey: "originals/pdfs/abc.pdf",
+      derivedMarkdownKey: "derived/markdown/abc.md",
+      derivedVttKey: "derived/transcripts/abc.vtt",
+    });
+    expect(urls.markdown).toBe("https://media.hodgeluke.com/derived/markdown/abc.md");
+    expect(urls.vtt).toBe("https://media.hodgeluke.com/derived/transcripts/abc.vtt");
   });
 });

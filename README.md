@@ -99,7 +99,7 @@ cp .dev.vars.example .dev.vars
 ```bash
 npm install
 npx wrangler d1 migrations apply personal-media --local
-npm test
+npm test   # vitest + v8 coverage, 90% gates on lines/branches/functions/statements
 npx wrangler deploy
 ```
 

@@ -17,7 +17,8 @@ Do not put the token in client-side git. Retrieve it from the operator's passwor
 ## Endpoints
 
 GET /health
-GET /assets?kind=image|video|audio|pdf&limit=50&offset=0
+GET /assets?kind=image|video|audio|pdf&q=&limit=50&offset=0
+  # q matches title and filename. Response includes total, limit, offset, and counts per kind.
 GET /assets/{id}
 GET /assets/{id}/status
 GET /assets/{id}/markdown     # PDFs after status=ready

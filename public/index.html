@@ -4,47 +4,77 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Library — Hodge Luke</title>
-    <meta name="description" content="Personal media library: upload, transcribe, parse, and browse." />
+    <meta name="description" content="Personal media library: batch upload, transcribe, parse, and browse." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="top">
-      <div>
-        <p class="kicker">hodgeluke.com</p>
-        <h1>Library</h1>
+    <a class="skip" href="#library">Skip to library</a>
+    <header class="mast">
+      <div class="brand">
+        <img
+          class="mark"
+          src="https://media.hodgeluke.com/cdn-cgi/image/width=72,height=72,fit=cover,format=auto,quality=80/originals/images/c2ef067c-8f89-474c-a5f9-c80364f1020e.jpg"
+          width="40"
+          height="40"
+          alt=""
+        />
+        <div>
+          <p class="kicker">hodgeluke.com</p>
+          <h1>Library</h1>
+        </div>
       </div>
       <p class="lede">
-        Drop images, video, voice memos, or PDFs. Originals are stored immediately; audio and PDFs
-        get transcripts and markdown.
+        Stage a batch of images, video, voice memos, or PDFs. Originals land immediately; audio and
+        PDFs pick up transcripts and markdown while you keep working.
       </p>
     </header>
 
     <main class="layout">
       <aside class="rail">
-        <section class="panel drop" id="drop">
-          <input id="file" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.m4a,.heic" hidden />
-          <p class="drop-title">Drop files here</p>
-          <p class="muted">or <button type="button" class="link" id="browse">browse</button></p>
-          <label class="title-field">
-            Title <span class="muted">(optional)</span>
-            <input id="title" type="text" placeholder="Walk notes, scan, still…" autocomplete="off" />
-          </label>
+        <section class="panel drop" id="drop" tabindex="0" role="button" aria-label="Drop files to stage a batch">
+          <input id="file" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.m4a,.heic,.mov,.mp4,.wav,.mp3" hidden />
+          <p class="drop-title">Drop a batch</p>
+          <p class="muted">
+            or
+            <button type="button" class="link" id="browse">browse</button>
+            · paste a still · drop a folder
+          </p>
+          <p class="hint" id="drop-hint">Images and video are ready on arrival. Audio and PDFs process in the background.</p>
         </section>
 
-        <section class="panel">
+        <section class="panel batch" id="batch-panel">
+          <div class="row">
+            <h2>Batch</h2>
+            <span class="muted" id="batch-count">Empty</span>
+          </div>
+          <div class="overall" id="overall" hidden>
+            <div class="overall-meta">
+              <span id="overall-label">Waiting</span>
+              <span id="overall-pct">0%</span>
+            </div>
+            <div class="bar large" aria-hidden="true"><span id="overall-bar"></span></div>
+            <p class="muted tight" id="overall-files"></p>
+          </div>
+          <label class="title-field">
+            Default title
+            <input id="title" type="text" placeholder="Applied to files without their own title" autocomplete="off" />
+          </label>
+          <div class="actions">
+            <button type="button" class="primary" id="upload-btn" disabled>Upload</button>
+            <button type="button" class="ghost" id="clear-staged" disabled>Clear staged</button>
+          </div>
+          <ul id="queue" class="queue"></ul>
+        </section>
+
+        <section class="panel token-panel">
           <div class="row">
             <h2>Upload token</h2>
             <button type="button" class="link" id="toggle-token">show</button>
           </div>
-          <p class="muted">Stored only in this browser. Required for uploads, not for browsing.</p>
+          <p class="muted">Stored only in this browser. Required to upload, not to browse.</p>
           <input id="token" type="password" placeholder="paste UPLOAD_TOKEN" autocomplete="off" />
           <p class="ok hidden" id="token-ok">Token saved on this device.</p>
-        </section>
-
-        <section class="panel hidden" id="queue-panel">
-          <h2>In flight</h2>
-          <ul id="queue"></ul>
         </section>
 
         <p class="agent">
@@ -52,20 +82,33 @@
         </p>
       </aside>
 
-      <section class="library">
+      <section class="library" id="library">
         <div class="toolbar">
-          <div class="filters" role="tablist">
-            <button class="chip on" data-kind="">All</button>
-            <button class="chip" data-kind="image">Images</button>
-            <button class="chip" data-kind="video">Video</button>
-            <button class="chip" data-kind="audio">Audio</button>
-            <button class="chip" data-kind="pdf">PDFs</button>
+          <label class="search">
+            <span class="sr-only">Search library</span>
+            <input id="search" type="search" placeholder="Search titles and filenames" autocomplete="off" />
+          </label>
+          <div class="filters" role="tablist" aria-label="Kind">
+            <button type="button" class="chip on" data-kind="">All <span class="n" data-count="all">0</span></button>
+            <button type="button" class="chip" data-kind="image">Images <span class="n" data-count="image">0</span></button>
+            <button type="button" class="chip" data-kind="video">Video <span class="n" data-count="video">0</span></button>
+            <button type="button" class="chip" data-kind="audio">Audio <span class="n" data-count="audio">0</span></button>
+            <button type="button" class="chip" data-kind="pdf">PDFs <span class="n" data-count="pdf">0</span></button>
           </div>
-          <button type="button" class="ghost" id="refresh">Refresh</button>
+          <div class="toolbar-end">
+            <div class="seg" role="group" aria-label="Layout">
+              <button type="button" class="seg-btn on" id="view-grid" aria-pressed="true">Grid</button>
+              <button type="button" class="seg-btn" id="view-list" aria-pressed="false">List</button>
+            </div>
+            <button type="button" class="ghost" id="refresh">Refresh</button>
+          </div>
         </div>
         <p class="status-line" id="count"></p>
         <div id="gallery" class="gallery"></div>
-        <p class="empty hidden" id="empty">Nothing here yet. Drop a file to start the shelf.</p>
+        <p class="empty hidden" id="empty">Nothing here yet. Stage a batch on the left to start the shelf.</p>
+        <div class="more-wrap">
+          <button type="button" class="ghost hidden" id="more">Load more</button>
+        </div>
       </section>
     </main>
 
@@ -76,15 +119,26 @@
             <p class="kicker" id="d-kind"></p>
             <h2 id="d-title"></h2>
           </div>
-          <button type="button" class="ghost" id="close">Close</button>
+          <div class="sheet-actions">
+            <button type="button" class="ghost" id="prev" aria-label="Previous">←</button>
+            <button type="button" class="ghost" id="next" aria-label="Next">→</button>
+            <button type="button" class="ghost" id="close">Close</button>
+          </div>
         </header>
         <p class="muted" id="d-meta"></p>
         <div id="d-media"></div>
-        <pre id="d-text" class="hidden"></pre>
+        <div class="text-block hidden" id="d-text-wrap">
+          <div class="row">
+            <h3 id="d-text-label">Text</h3>
+            <button type="button" class="link" id="copy-text">Copy</button>
+          </div>
+          <pre id="d-text"></pre>
+        </div>
         <dl id="d-urls"></dl>
       </article>
     </dialog>
 
+    <div id="toasts" class="toasts" aria-live="polite"></div>
     <script src="/app.js" type="module"></script>
   </body>
 </html>

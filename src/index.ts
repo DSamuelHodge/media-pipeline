@@ -1,5 +1,5 @@
 import { requireUploadToken } from "./auth";
-import { getAsset, insertAsset, listAssets, setStatus, withUrls } from "./catalog";
+import { countAssets, getAsset, insertAsset, kindCounts, listAssets, setStatus, withUrls } from "./catalog";
 import { corsHeaders, json, withCors } from "./cors";
 import { isKind, kindNeedsWorkflow, originalKey, resolveKind, type AssetKind } from "./kinds";
 import { readSecret } from "./secrets";
@@ -79,11 +79,21 @@ async function list(request: Request, env: Env): Promise<Response> {
   if (kindParam && !kind) {
     return json(request, { error: "kind must be image, video, audio, or pdf" }, { status: 400 });
   }
+  const q = url.searchParams.get("q")?.trim().slice(0, 80) || undefined;
   const limit = clampInt(url.searchParams.get("limit"), 50, 1, 100);
   const offset = clampInt(url.searchParams.get("offset"), 0, 0, 10_000);
-  const rows = await listAssets(env.DB, { kind, limit, offset });
+  const filter = { kind, q };
+  const [rows, total, counts] = await Promise.all([
+    listAssets(env.DB, { ...filter, limit, offset }),
+    countAssets(env.DB, filter),
+    kindCounts(env.DB, q),
+  ]);
   return json(request, {
     assets: rows.map((row) => withUrls(row, env.MEDIA_PUBLIC_ORIGIN)),
+    total,
+    limit,
+    offset,
+    counts,
   });
 }
 

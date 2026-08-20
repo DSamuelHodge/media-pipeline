@@ -26,8 +26,8 @@ Images and video are **ready** at insert (`201`). Audio and PDFs return **202**;
 
 1. Open https://ingest.hodgeluke.com
 2. Paste the upload token once (`pass show cloudflare/media-pipeline/upload-token`). It stays in this browser.
-3. Drop images, video, voice memos, or PDFs. Images and video appear immediately; audio and PDFs show in **In flight** until ready.
-4. Open a card for preview, transcript, markdown, and public URLs.
+3. Drop or browse a batch (folders and pasted stills work too). Review titles in the staging list, then **Upload**. Up to three files go in parallel. Images and video are ready on arrival; audio and PDFs stay in the batch until transcripts and markdown land.
+4. Search, filter, and page the shelf. Open a card for preview, transcript, markdown, and public URLs.
 
 Reads are public. The token is only required to upload.
 
@@ -51,7 +51,7 @@ curl https://ingest.hodgeluke.com/assets/<id>/markdown
 | Method | Path | Auth |
 |---|---|---|
 | GET | `/health` | none |
-| GET | `/assets?kind=&limit=&offset=` | none |
+| GET | `/assets?kind=&q=&limit=&offset=` | none |
 | GET | `/assets/{id}` | none |
 | GET | `/assets/{id}/status` | none |
 | GET | `/assets/{id}/markdown` | none (PDFs, when ready) |

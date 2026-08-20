@@ -62,6 +62,29 @@ export function fakeR2(initial: Record<string, string | ArrayBuffer> = {}) {
   };
 }
 
+function applyFilters(sql: string, binds: unknown[], rows: AssetRow[]): AssetRow[] {
+  let list = rows;
+  let i = 0;
+  if (sql.includes("kind = ?")) {
+    const kind = binds[i++];
+    list = list.filter((row) => row.kind === kind);
+  }
+  if (sql.includes("LIKE")) {
+    const like = String(binds[i] ?? "");
+    const needle = like
+      .replace(/^%/, "")
+      .replace(/%$/, "")
+      .replaceAll("\\%", "%")
+      .replaceAll("\\_", "_")
+      .replaceAll("\\\\", "\\")
+      .toLowerCase();
+    list = list.filter(
+      (row) => (row.title ?? "").toLowerCase().includes(needle) || row.filename.toLowerCase().includes(needle),
+    );
+  }
+  return list;
+}
+
 export function fakeD1(initial: AssetRow[] = []) {
   const rows = new Map<string, AssetRow>(initial.map((row) => [row.id, { ...row }]));
   let hideNextSelect = false;
@@ -91,6 +114,9 @@ export function fakeD1(initial: AssetRow[] = []) {
             hideNextSelect = false;
             return null;
           }
+          if (sql.includes("COUNT(*)")) {
+            return { n: applyFilters(sql, stmt._binds, [...rows.values()]).length } as T;
+          }
           const id = stmt._binds[0] as string;
           return (rows.get(id) as T | undefined) ?? null;
         },
@@ -99,14 +125,15 @@ export function fakeD1(initial: AssetRow[] = []) {
             emptyAll = false;
             return {};
           }
-          let list = [...rows.values()];
-          const kindFilter = sql.includes("WHERE kind");
-          if (kindFilter) {
-            list = list.filter((row) => row.kind === stmt._binds[0]);
+          const list = applyFilters(sql, stmt._binds, [...rows.values()]);
+          if (sql.includes("GROUP BY")) {
+            const tally = new Map<string, number>();
+            for (const row of list) tally.set(row.kind, (tally.get(row.kind) ?? 0) + 1);
+            return { results: [...tally.entries()].map(([kind, n]) => ({ kind, n })) as T[] };
           }
           list.sort((a, b) => b.created_at.localeCompare(a.created_at));
-          const limit = (kindFilter ? stmt._binds[1] : stmt._binds[0]) as number;
-          const offset = (kindFilter ? stmt._binds[2] : stmt._binds[1]) as number;
+          const limit = stmt._binds[stmt._binds.length - 2] as number;
+          const offset = stmt._binds[stmt._binds.length - 1] as number;
           return { results: list.slice(offset, offset + limit) as T[] };
         },
         async run() {

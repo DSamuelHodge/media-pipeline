@@ -22,10 +22,20 @@
             "in": "query",
             "schema": { "enum": ["image", "video", "audio", "pdf"] }
           },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Case-insensitive match on title or filename (max 80 chars).",
+            "schema": { "type": "string" }
+          },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
           { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
         ],
-        "responses": { "200": { "description": "Catalog" } }
+        "responses": {
+          "200": {
+            "description": "Catalog with total, pagination, and per-kind counts."
+          }
+        }
       }
     },
     "/assets/{id}": {

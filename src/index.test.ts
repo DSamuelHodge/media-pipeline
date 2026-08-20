@@ -15,18 +15,29 @@ describe("worker fetch", () => {
   });
 
   it("lists assets and rejects a bad kind", async () => {
-    const db = fakeD1([sampleRow(), sampleRow({ id: "a2", kind: "audio", original_key: "originals/audio/a2.m4a" })]);
+    const db = fakeD1([
+      sampleRow(),
+      sampleRow({ id: "a2", kind: "audio", title: "Memo", filename: "memo.m4a", original_key: "originals/audio/a2.m4a" }),
+    ]);
     const env = makeEnv({ db });
     const bad = await fetchWorker(jsonRequest("/assets?kind=nope"), env);
     expect(bad.status).toBe(400);
 
     const listed = await fetchWorker(jsonRequest("/assets?kind=image&limit=bogus&offset=-3"), env);
-    const body = (await listed.json()) as { assets: { id: string }[] };
+    const body = (await listed.json()) as { assets: { id: string }[]; total: number; counts: { all: number; image: number } };
     expect(body.assets).toHaveLength(1);
+    expect(body.total).toBe(1);
+    expect(body.counts).toEqual({ all: 2, image: 1, video: 0, audio: 1, pdf: 0 });
 
     const clamped = await fetchWorker(jsonRequest("/assets?limit=999&offset=0"), env);
-    const all = (await clamped.json()) as { assets: unknown[] };
+    const all = (await clamped.json()) as { assets: unknown[]; total: number };
     expect(all.assets).toHaveLength(2);
+    expect(all.total).toBe(2);
+
+    const searched = await fetchWorker(jsonRequest("/assets?q=hero"), env);
+    const found = (await searched.json()) as { assets: { id: string }[]; total: number };
+    expect(found.assets).toHaveLength(1);
+    expect(found.total).toBe(1);
   });
 
   it("shows an asset or 404", async () => {

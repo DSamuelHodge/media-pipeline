@@ -21,11 +21,12 @@ export type AssetRow = {
   updated_at: string;
 };
 
-export function withUrls(row: AssetRow, origin: string) {
+export function withUrls(row: AssetRow, origin: string, transformOrigin?: string) {
   return {
     ...row,
     urls: publicUrls({
       origin,
+      transformOrigin,
       kind: row.kind,
       originalKey: row.original_key,
       derivedMarkdownKey: row.derived_markdown_key,

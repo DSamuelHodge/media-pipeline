@@ -6,6 +6,7 @@ interface Env {
   SITE: Fetcher;
   DB: D1Database;
   AI: Ai;
+  IMAGES: ImagesBinding;
   PROCESS_ASSET: Workflow<import("./src/workflow").ProcessAssetParams>;
   MEDIA_PUBLIC_ORIGIN: string;
   UPLOAD_TOKEN: string;

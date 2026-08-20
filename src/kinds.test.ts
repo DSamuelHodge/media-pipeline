@@ -25,11 +25,13 @@ describe("keys and public urls", () => {
   it("builds transform urls from the public origin", () => {
     const urls = publicUrls({
       origin: "https://media.example.com/",
+      transformOrigin: "https://ingest.hodgeluke.com",
       kind: "image",
       originalKey: "originals/images/abc.jpg",
     });
+    expect(urls.display).toContain("https://ingest.hodgeluke.com/i/");
     expect(urls.original).toBe("https://media.example.com/originals/images/abc.jpg");
-    expect(urls.display).toContain("/cdn-cgi/image/width=1600,format=auto,quality=80/originals/images/abc.jpg");
+    expect(urls.display).toContain("/i/width=1600,format=auto,quality=80/originals/images/abc.jpg");
     expect(urls.thumbnail).toContain("width=400");
   });
 
@@ -39,6 +41,6 @@ describe("keys and public urls", () => {
       kind: "video",
       originalKey: "originals/video/abc.mp4",
     });
-    expect(urls.preview).toBe("https://media.example.com/cdn-cgi/media/width=640/originals/video/abc.mp4");
+    expect(urls.preview).toBe("https://media.example.com/originals/video/abc.mp4");
   });
 });

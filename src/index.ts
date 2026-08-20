@@ -3,17 +3,21 @@ import { getAsset, insertAsset, listAssets, withUrls } from "./catalog";
 import { corsHeaders, json, withCors } from "./cors";
 import { isKind, kindFromMimeAndName, originalKey, type AssetKind } from "./kinds";
 import { readSecret } from "./secrets";
+import { transformFromR2 } from "./transform";
 import { ProcessAssetWorkflow } from "./workflow";
 
 export { ProcessAssetWorkflow };
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
-
     try {
       if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers: corsHeaders(request) });
+      }
+
+      if (request.method === "GET" && url.pathname.startsWith("/i/")) {
+        return transformFromR2(request, env, ctx);
       }
 
       if (request.method === "GET" && url.pathname === "/health") {
@@ -69,14 +73,14 @@ async function list(request: Request, env: Env): Promise<Response> {
   const offset = clampInt(url.searchParams.get("offset"), 0, 0, 10_000);
   const rows = await listAssets(env.DB, { kind, limit, offset });
   return json(request, {
-    assets: rows.map((row) => withUrls(row, env.MEDIA_PUBLIC_ORIGIN)),
+    assets: rows.map((row) => withUrls(row, env.MEDIA_PUBLIC_ORIGIN, new URL(request.url).origin)),
   });
 }
 
 async function show(request: Request, env: Env, id: string): Promise<Response> {
   const row = await getAsset(env.DB, id);
   if (!row) return json(request, { error: "not found" }, { status: 404 });
-  return json(request, withUrls(row, env.MEDIA_PUBLIC_ORIGIN));
+  return json(request, withUrls(row, env.MEDIA_PUBLIC_ORIGIN, new URL(request.url).origin));
 }
 
 async function status(request: Request, env: Env, id: string): Promise<Response> {
@@ -174,7 +178,7 @@ async function upload(request: Request, env: Env): Promise<Response> {
   return json(
     request,
     {
-      ...(row ? withUrls(row, env.MEDIA_PUBLIC_ORIGIN) : { id, kind, original_key: key }),
+      ...(row ? withUrls(row, env.MEDIA_PUBLIC_ORIGIN, new URL(request.url).origin) : { id, kind, original_key: key }),
       workflow: { id: instance.id, details: await instance.status() },
     },
     { status: 202 },

@@ -1,11 +1,27 @@
+# dependencies
 node_modules/
+
+# wrangler / cloudflare
 .wrangler/
 .dev.vars
-dist/
-*.log
-.DS_Store
-.DS_Store
+.dev.vars.*
+!.dev.vars.example
+
+# secrets and local env
 .env
 .env.*
-!public/openapi.json
+!.env.example
 
+# build
+dist/
+coverage/
+
+# logs and OS
+*.log
+.DS_Store
+Thumbs.db
+
+# editors
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,88 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hodge Luke media library",
+    "version": "0.1.0",
+    "description": "Ingest images, video, audio, and PDFs. Reads are public; uploads require a bearer token."
+  },
+  "servers": [{ "url": "https://ingest.hodgeluke.com" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "responses": { "200": { "description": "ok" } }
+      }
+    },
+    "/assets": {
+      "get": {
+        "summary": "List assets",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": { "enum": ["image", "video", "audio", "pdf"] }
+          },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": { "200": { "description": "Catalog" } }
+      }
+    },
+    "/assets/{id}": {
+      "get": {
+        "summary": "Get one asset plus public URLs",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Asset" }, "404": { "description": "Missing" } }
+      }
+    },
+    "/assets/{id}/status": {
+      "get": {
+        "summary": "Processing status",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "uploaded | processing | ready | failed" } }
+      }
+    },
+    "/assets/{id}/markdown": {
+      "get": {
+        "summary": "Derived PDF markdown",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "text/markdown" }, "409": { "description": "Not ready" } }
+      }
+    },
+    "/assets/{id}/transcript": {
+      "get": {
+        "summary": "Derived audio transcript",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "text/markdown" }, "409": { "description": "Not ready" } }
+      }
+    },
+    "/upload": {
+      "post": {
+        "summary": "Upload a file and start processing",
+        "security": [{ "UploadToken": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "title": { "type": "string" },
+                  "kind": { "enum": ["image", "video", "audio", "pdf"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "202": { "description": "Accepted; poll /assets/{id}/status" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "UploadToken": { "type": "http", "scheme": "bearer" }
+    }
+  }
+}

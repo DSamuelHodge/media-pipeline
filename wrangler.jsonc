@@ -1,0 +1,64 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "media-pipeline",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-20",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      "bucket_name": "personal-media"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "personal-media",
+      "database_id": "c124e2fe-0722-4521-9eac-e1736920a4f0",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "workflows": [
+    {
+      "binding": "PROCESS_ASSET",
+      "name": "process-asset",
+      "class_name": "ProcessAssetWorkflow"
+    }
+  ],
+  "vars": {
+    "MEDIA_PUBLIC_ORIGIN": "https://media.hodgeluke.com"
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "SITE",
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": ["/upload", "/health", "/assets", "/assets/*"]
+  },
+  "routes": [
+    {
+      "pattern": "ingest.hodgeluke.com",
+      "custom_domain": true
+    }
+  ],
+  "secrets": {
+    "required": ["UPLOAD_TOKEN", "FIRECRAWL_API_KEY"]
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "SECRET_UPLOAD_TOKEN",
+      "store_id": "b4bca0c4e2bd4ed89750765e376d2201",
+      "secret_name": "MEDIA_PIPELINE_UPLOAD_TOKEN"
+    },
+    {
+      "binding": "SECRET_FIRECRAWL_API_KEY",
+      "store_id": "b4bca0c4e2bd4ed89750765e376d2201",
+      "secret_name": "MEDIA_PIPELINE_FIRECRAWL_API_KEY"
+    }
+  ]
+}

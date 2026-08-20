@@ -1,0 +1,44 @@
+# Hodge Luke media library
+
+Base URL: https://ingest.hodgeluke.com
+Public files: https://media.hodgeluke.com
+
+This is a personal media ingest API. Humans use the site at the base URL. Agents should call the HTTP API. OpenAPI: https://ingest.hodgeluke.com/openapi.json
+
+## Auth
+
+Reads (GET) are public.
+Writes (POST /upload) require:
+  Authorization: Bearer $UPLOAD_TOKEN
+
+Do not put the token in client-side git. Retrieve it from the operator's password store:
+  pass show cloudflare/media-pipeline/upload-token
+
+## Endpoints
+
+GET /health
+GET /assets?kind=image|video|audio|pdf&limit=50&offset=0
+GET /assets/{id}
+GET /assets/{id}/status
+GET /assets/{id}/markdown     # PDFs after status=ready
+GET /assets/{id}/transcript   # audio after status=ready
+GET /assets/{id}/vtt
+POST /upload                  # multipart: file (required), title, kind
+
+Kinds: image, video, audio, pdf. If kind is omitted, it is inferred from MIME/extension.
+
+POST /upload returns 202 immediately. Poll GET /assets/{id}/status until status is ready or failed.
+
+## Processing
+
+- image: stored; serve via media.hodgeluke.com/cdn-cgi/image/...
+- video: stored; optional /cdn-cgi/media once transformations are enabled
+- audio: Whisper Large v3 Turbo → markdown + VTT
+- pdf: Firecrawl /parse → markdown
+
+## Example
+
+curl -X POST https://ingest.hodgeluke.com/upload \
+  -H "Authorization: Bearer $UPLOAD_TOKEN" \
+  -F "file=@./memo.m4a" \
+  -F "title=Walk notes"

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Library — Hodge Luke</title>
+    <meta name="description" content="Personal media library: upload, transcribe, parse, and browse." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <p class="kicker">hodgeluke.com</p>
+        <h1>Library</h1>
+      </div>
+      <p class="lede">
+        Drop images, video, voice memos, or PDFs. The pipeline stores originals, then derives
+        transforms, transcripts, and markdown.
+      </p>
+    </header>
+
+    <main class="layout">
+      <aside class="rail">
+        <section class="panel drop" id="drop">
+          <input id="file" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.m4a,.heic" hidden />
+          <p class="drop-title">Drop files here</p>
+          <p class="muted">or <button type="button" class="link" id="browse">browse</button></p>
+          <label class="title-field">
+            Title <span class="muted">(optional)</span>
+            <input id="title" type="text" placeholder="Walk notes, scan, still…" autocomplete="off" />
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="row">
+            <h2>Upload token</h2>
+            <button type="button" class="link" id="toggle-token">show</button>
+          </div>
+          <p class="muted">Stored only in this browser. Required for uploads, not for browsing.</p>
+          <input id="token" type="password" placeholder="paste UPLOAD_TOKEN" autocomplete="off" />
+          <p class="ok hidden" id="token-ok">Token saved on this device.</p>
+        </section>
+
+        <section class="panel hidden" id="queue-panel">
+          <h2>In flight</h2>
+          <ul id="queue"></ul>
+        </section>
+
+        <p class="agent">
+          Agents: <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a>
+        </p>
+      </aside>
+
+      <section class="library">
+        <div class="toolbar">
+          <div class="filters" role="tablist">
+            <button class="chip on" data-kind="">All</button>
+            <button class="chip" data-kind="image">Images</button>
+            <button class="chip" data-kind="video">Video</button>
+            <button class="chip" data-kind="audio">Audio</button>
+            <button class="chip" data-kind="pdf">PDFs</button>
+          </div>
+          <button type="button" class="ghost" id="refresh">Refresh</button>
+        </div>
+        <p class="status-line" id="count"></p>
+        <div id="gallery" class="gallery"></div>
+        <p class="empty hidden" id="empty">Nothing here yet. Drop a file to start the shelf.</p>
+      </section>
+    </main>
+
+    <dialog id="detail">
+      <article class="sheet">
+        <header>
+          <div>
+            <p class="kicker" id="d-kind"></p>
+            <h2 id="d-title"></h2>
+          </div>
+          <button type="button" class="ghost" id="close">Close</button>
+        </header>
+        <p class="muted" id="d-meta"></p>
+        <div id="d-media"></div>
+        <pre id="d-text" class="hidden"></pre>
+        <dl id="d-urls"></dl>
+      </article>
+    </dialog>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

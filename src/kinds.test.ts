@@ -29,9 +29,8 @@ describe("keys and public urls", () => {
       kind: "image",
       originalKey: "originals/images/abc.jpg",
     });
-    expect(urls.display).toContain("https://ingest.hodgeluke.com/i/");
     expect(urls.original).toBe("https://media.example.com/originals/images/abc.jpg");
-    expect(urls.display).toContain("/i/width=1600,format=auto,quality=80/originals/images/abc.jpg");
+    expect(urls.display).toContain("/cdn-cgi/image/width=1600,format=auto,quality=80/originals/images/abc.jpg");
     expect(urls.thumbnail).toContain("width=400");
   });
 

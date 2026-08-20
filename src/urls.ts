@@ -29,8 +29,8 @@ export function publicUrls(input: {
   const urls: PublicUrls = { original };
 
   if (input.kind === "image") {
-    urls.thumbnail = `${transform}/i/width=400,height=400,fit=cover,format=auto,quality=80/${input.originalKey}`;
-    urls.display = `${transform}/i/width=1600,format=auto,quality=80/${input.originalKey}`;
+    urls.thumbnail = `${origin}/cdn-cgi/image/width=400,height=400,fit=cover,format=auto,quality=80/${input.originalKey}`;
+    urls.display = `${origin}/cdn-cgi/image/width=1600,format=auto,quality=80/${input.originalKey}`;
   }
 
   if (input.kind === "video") {

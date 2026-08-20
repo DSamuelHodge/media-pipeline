@@ -51,8 +51,23 @@ export default {
       }
 
       if (env.SITE) {
-        return env.SITE.fetch(request);
+        const page = await env.SITE.fetch(request);
+        if (page.status !== 404) return page;
       }
+
+      const objectKey = url.pathname.replace(/^\//, "");
+      if (objectKey && !objectKey.endsWith("/")) {
+        const object = await env.ASSETS.get(objectKey);
+        if (object?.body) {
+          return new Response(object.body, {
+            headers: {
+              "content-type": object.httpMetadata?.contentType ?? "application/octet-stream",
+              "cache-control": "public, max-age=14400",
+            },
+          });
+        }
+      }
+
       return json(request, { error: "not found" }, { status: 404 });
     } catch (error) {
       const message = error instanceof Error ? error.message : "internal error";

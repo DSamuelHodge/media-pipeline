@@ -47,6 +47,10 @@
     {
       "pattern": "ingest.hodgeluke.com",
       "custom_domain": true
+    },
+    {
+      "pattern": "media.hodgeluke.com/*",
+      "zone_name": "hodgeluke.com"
     }
   ],
   "secrets": {

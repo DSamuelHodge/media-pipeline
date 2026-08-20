@@ -8,8 +8,7 @@ const ALLOWED_ORIGINS = [
 
 export function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get("origin") ?? "";
-  const allow =
-    ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".github.io") ? origin : ALLOWED_ORIGINS[0];
+  const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "access-control-allow-origin": allow,
     "access-control-allow-methods": "GET, POST, OPTIONS",

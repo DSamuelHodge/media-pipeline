@@ -1,23 +1,18 @@
 import { requireUploadToken } from "./auth";
-import { getAsset, insertAsset, listAssets, withUrls } from "./catalog";
+import { getAsset, insertAsset, listAssets, setStatus, withUrls } from "./catalog";
 import { corsHeaders, json, withCors } from "./cors";
-import { isKind, kindFromMimeAndName, originalKey, type AssetKind } from "./kinds";
+import { isKind, kindNeedsWorkflow, originalKey, resolveKind, type AssetKind } from "./kinds";
 import { readSecret } from "./secrets";
-import { transformFromR2 } from "./transform";
 import { ProcessAssetWorkflow } from "./workflow";
 
 export { ProcessAssetWorkflow };
 
 export default {
-  async fetch(request, env, ctx): Promise<Response> {
+  async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     try {
       if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers: corsHeaders(request) });
-      }
-
-      if (request.method === "GET" && url.pathname.startsWith("/i/")) {
-        return transformFromR2(request, env, ctx);
       }
 
       if (request.method === "GET" && url.pathname === "/health") {
@@ -88,14 +83,14 @@ async function list(request: Request, env: Env): Promise<Response> {
   const offset = clampInt(url.searchParams.get("offset"), 0, 0, 10_000);
   const rows = await listAssets(env.DB, { kind, limit, offset });
   return json(request, {
-    assets: rows.map((row) => withUrls(row, env.MEDIA_PUBLIC_ORIGIN, new URL(request.url).origin)),
+    assets: rows.map((row) => withUrls(row, env.MEDIA_PUBLIC_ORIGIN)),
   });
 }
 
 async function show(request: Request, env: Env, id: string): Promise<Response> {
   const row = await getAsset(env.DB, id);
   if (!row) return json(request, { error: "not found" }, { status: 404 });
-  return json(request, withUrls(row, env.MEDIA_PUBLIC_ORIGIN, new URL(request.url).origin));
+  return json(request, withUrls(row, env.MEDIA_PUBLIC_ORIGIN));
 }
 
 async function status(request: Request, env: Env, id: string): Promise<Response> {
@@ -157,7 +152,7 @@ async function upload(request: Request, env: Env): Promise<Response> {
   const filename = file.name || "upload";
   const mime = file.type || "application/octet-stream";
   const requestedKind = typeof form.get("kind") === "string" ? (form.get("kind") as string) : null;
-  const kind: AssetKind | null = isKind(requestedKind) ? requestedKind : kindFromMimeAndName(mime, filename);
+  const kind: AssetKind | null = resolveKind(mime, filename, requestedKind);
   if (!kind) {
     return json(request, { error: "could not determine kind; pass kind=image|video|audio|pdf" }, { status: 400 });
   }
@@ -165,13 +160,33 @@ async function upload(request: Request, env: Env): Promise<Response> {
   const title = typeof form.get("title") === "string" && form.get("title") ? String(form.get("title")) : filename;
   const id = crypto.randomUUID();
   const key = originalKey(kind, id, filename);
-  const workflowId = `process-${id}`;
 
   await env.ASSETS.put(key, file.stream(), {
     httpMetadata: { contentType: mime },
     customMetadata: { assetId: id, kind, filename },
   });
 
+  if (!kindNeedsWorkflow(kind)) {
+    await insertAsset(env.DB, {
+      id,
+      kind,
+      title,
+      filename,
+      content_type: mime,
+      size: file.size,
+      original_key: key,
+      status: "ready",
+      workflow_id: null,
+    });
+    const row = await getAsset(env.DB, id);
+    return json(
+      request,
+      row ? withUrls(row, env.MEDIA_PUBLIC_ORIGIN) : { id, kind, original_key: key, status: "ready" },
+      { status: 201 },
+    );
+  }
+
+  const workflowId = `process-${id}`;
   await insertAsset(env.DB, {
     id,
     kind,
@@ -184,20 +199,33 @@ async function upload(request: Request, env: Env): Promise<Response> {
     workflow_id: workflowId,
   });
 
-  const instance = await env.PROCESS_ASSET.create({
-    id: workflowId,
-    params: { id, kind },
-  });
-
-  const row = await getAsset(env.DB, id);
-  return json(
-    request,
-    {
-      ...(row ? withUrls(row, env.MEDIA_PUBLIC_ORIGIN, new URL(request.url).origin) : { id, kind, original_key: key }),
-      workflow: { id: instance.id, details: await instance.status() },
-    },
-    { status: 202 },
-  );
+  try {
+    const instance = await env.PROCESS_ASSET.create({
+      id: workflowId,
+      params: { id, kind },
+    });
+    const row = await getAsset(env.DB, id);
+    return json(
+      request,
+      {
+        ...(row ? withUrls(row, env.MEDIA_PUBLIC_ORIGIN) : { id, kind, original_key: key }),
+        workflow: { id: instance.id, details: await instance.status() },
+      },
+      { status: 202 },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "workflow create failed";
+    await setStatus(env.DB, id, "failed", { error: message });
+    const row = await getAsset(env.DB, id);
+    return json(
+      request,
+      {
+        ...(row ? withUrls(row, env.MEDIA_PUBLIC_ORIGIN) : { id, kind, original_key: key }),
+        error: message,
+      },
+      { status: 500 },
+    );
+  }
 }
 
 function clampInt(raw: string | null, fallback: number, min: number, max: number): number {

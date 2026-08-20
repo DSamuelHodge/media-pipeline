@@ -1,4 +1,4 @@
-const API_BASE = location.hostname.endsWith("github.io") ? "https://ingest.hodgeluke.com" : "";
+const API_BASE = location.hostname === "dsamuelhodge.github.io" ? "https://ingest.hodgeluke.com" : "";
 const TOKEN_KEY = "media-pipeline-upload-token";
 
 const $ = (id) => document.getElementById(id);
@@ -166,9 +166,14 @@ async function openDetail(id) {
   urls.replaceChildren();
   for (const [name, href] of Object.entries(asset.urls ?? {})) {
     if (!href) continue;
-    const row = document.createElement("div");
-    row.innerHTML = `<dt>${escapeHtml(name)}</dt><dd><a href="${href}">${escapeHtml(href)}</a></dd>`;
-    urls.append(row);
+    const dt = document.createElement("dt");
+    dt.textContent = name;
+    const dd = document.createElement("dd");
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = href;
+    dd.append(a);
+    urls.append(dt, dd);
   }
   detail.showModal();
 }
@@ -206,6 +211,11 @@ function uploadOne(file, token) {
       return;
     }
     const asset = JSON.parse(xhr.responseText);
+    if (asset.status === "ready") {
+      item.querySelector("div").textContent = `${file.name} — ready`;
+      await loadGallery();
+      return;
+    }
     item.querySelector("div").textContent = `${file.name} — processing`;
     await loadGallery();
     watch(asset.id, item);

@@ -26,14 +26,15 @@ export class ProcessAssetWorkflow extends WorkflowEntrypoint<Env, ProcessAssetPa
     });
 
     try {
-      if (kind === "image") {
-        await step.do("handle image", async () => handleImage(this.env, id));
-      } else if (kind === "video") {
-        await step.do("handle video", async () => handleVideo(this.env, id));
-      } else if (kind === "audio") {
+      if (kind === "audio") {
         await step.do("handle audio whisper", STEP_RETRY, async () => handleAudio(this.env, id));
-      } else {
+      } else if (kind === "pdf") {
         await step.do("handle pdf parse", STEP_RETRY, async () => handlePdf(this.env, id));
+      } else {
+        await step.do("mark ready", async () => {
+          await setStatus(this.env.DB, id, "ready", { error: null });
+          return { id, kind };
+        });
       }
 
       return { id, kind, status: "ready" as const };
@@ -48,28 +49,21 @@ export class ProcessAssetWorkflow extends WorkflowEntrypoint<Env, ProcessAssetPa
   }
 }
 
-async function handleImage(env: Env, id: string) {
-  const asset = await requireAsset(env, id);
-  await setStatus(env.DB, id, "ready", { error: null });
-  return { originalKey: asset.original_key };
-}
-
-async function handleVideo(env: Env, id: string) {
-  const asset = await requireAsset(env, id);
-  await setStatus(env.DB, id, "ready", { error: null });
-  return { originalKey: asset.original_key };
-}
-
 async function handleAudio(env: Env, id: string) {
   const asset = await requireAsset(env, id);
-  const existing = await env.ASSETS.get(transcriptKey(id));
-  if (existing) {
-    await setStatus(env.DB, id, "ready", {
+  const tKey = transcriptKey(id);
+  const captionsKey = vttKey(id);
+  const existingTranscript = await env.ASSETS.get(tKey);
+  if (existingTranscript) {
+    const extra: { derivedTranscriptKey: string; derivedVttKey?: string; error: null } = {
       error: null,
-      derivedTranscriptKey: transcriptKey(id),
-      derivedVttKey: vttKey(id),
-    });
-    return { skipped: true, key: transcriptKey(id) };
+      derivedTranscriptKey: tKey,
+    };
+    if (await env.ASSETS.get(captionsKey)) {
+      extra.derivedVttKey = captionsKey;
+    }
+    await setStatus(env.DB, id, "ready", extra);
+    return { skipped: true, key: tKey };
   }
 
   const object = await env.ASSETS.get(asset.original_key);
@@ -79,8 +73,6 @@ async function handleAudio(env: Env, id: string) {
 
   const whisper = await transcribeAudio(env.AI, await object.arrayBuffer());
   const title = asset.title || asset.filename;
-  const tKey = transcriptKey(id);
-  const captionsKey = vttKey(id);
 
   await env.ASSETS.put(tKey, transcriptMarkdown(title, whisper.text), {
     httpMetadata: { contentType: "text/markdown; charset=utf-8" },
@@ -94,7 +86,7 @@ async function handleAudio(env: Env, id: string) {
   await setStatus(env.DB, id, "ready", {
     error: null,
     derivedTranscriptKey: tKey,
-    derivedVttKey: whisper.vtt ? captionsKey : null,
+    ...(whisper.vtt ? { derivedVttKey: captionsKey } : {}),
   });
 
   return { key: tKey, chars: whisper.text.length, wordCount: whisper.word_count ?? null };

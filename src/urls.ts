@@ -16,7 +16,6 @@ function joinOrigin(origin: string, path: string): string {
 
 export function publicUrls(input: {
   origin: string;
-  transformOrigin?: string;
   kind: AssetKind;
   originalKey: string;
   derivedMarkdownKey?: string | null;
@@ -24,7 +23,6 @@ export function publicUrls(input: {
   derivedVttKey?: string | null;
 }): PublicUrls {
   const origin = input.origin.replace(/\/$/, "");
-  const transform = (input.transformOrigin ?? origin).replace(/\/$/, "");
   const original = joinOrigin(origin, input.originalKey);
   const urls: PublicUrls = { original };
 

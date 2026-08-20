@@ -10,9 +10,6 @@
   "ai": {
     "binding": "AI"
   },
-  "images": {
-    "binding": "IMAGES"
-  },
   "r2_buckets": [
     {
       "binding": "ASSETS",
@@ -41,7 +38,7 @@
     "directory": "./public",
     "binding": "SITE",
     "html_handling": "auto-trailing-slash",
-    "run_worker_first": ["/upload", "/health", "/assets", "/assets/*", "/i", "/i/*"]
+    "run_worker_first": ["/upload", "/health", "/assets", "/assets/*"]
   },
   "routes": [
     {

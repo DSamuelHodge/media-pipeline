@@ -21,12 +21,19 @@ export type AssetRow = {
   updated_at: string;
 };
 
-export function withUrls(row: AssetRow, origin: string, transformOrigin?: string) {
+export type StatusExtra = {
+  error?: string | null;
+  derivedMarkdownKey?: string;
+  derivedTranscriptKey?: string;
+  derivedVttKey?: string;
+  workflowId?: string;
+};
+
+export function withUrls(row: AssetRow, origin: string) {
   return {
     ...row,
     urls: publicUrls({
       origin,
-      transformOrigin,
       kind: row.kind,
       originalKey: row.original_key,
       derivedMarkdownKey: row.derived_markdown_key,
@@ -71,16 +78,12 @@ export async function listAssets(
   db: D1Database,
   opts: { kind?: AssetKind; limit: number; offset: number },
 ): Promise<AssetRow[]> {
-  if (opts.kind) {
-    const result = await db
-      .prepare("SELECT * FROM assets WHERE kind = ? ORDER BY created_at DESC LIMIT ? OFFSET ?")
-      .bind(opts.kind, opts.limit, opts.offset)
-      .all<AssetRow>();
-    return result.results ?? [];
-  }
+  const where = opts.kind ? "WHERE kind = ?" : "";
+  const sql = `SELECT * FROM assets ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+  const binds = opts.kind ? [opts.kind, opts.limit, opts.offset] : [opts.limit, opts.offset];
   const result = await db
-    .prepare("SELECT * FROM assets ORDER BY created_at DESC LIMIT ? OFFSET ?")
-    .bind(opts.limit, opts.offset)
+    .prepare(sql)
+    .bind(...binds)
     .all<AssetRow>();
   return result.results ?? [];
 }
@@ -89,13 +92,7 @@ export async function setStatus(
   db: D1Database,
   id: string,
   status: AssetStatus,
-  extra: {
-    error?: string | null;
-    derivedMarkdownKey?: string | null;
-    derivedTranscriptKey?: string | null;
-    derivedVttKey?: string | null;
-    workflowId?: string | null;
-  } = {},
+  extra: StatusExtra = {},
 ): Promise<void> {
   await db
     .prepare(

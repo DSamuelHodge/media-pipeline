@@ -58,7 +58,7 @@
     },
     "/upload": {
       "post": {
-        "summary": "Upload a file and start processing",
+        "summary": "Upload a file. Images and video are ready immediately; audio and PDFs start a workflow.",
         "security": [{ "UploadToken": [] }],
         "requestBody": {
           "required": true,
@@ -70,13 +70,19 @@
                 "properties": {
                   "file": { "type": "string", "format": "binary" },
                   "title": { "type": "string" },
-                  "kind": { "enum": ["image", "video", "audio", "pdf"] }
+                  "kind": {
+                    "enum": ["image", "video", "audio", "pdf"],
+                    "description": "Used only when MIME and filename cannot be inferred."
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "202": { "description": "Accepted; poll /assets/{id}/status" } }
+        "responses": {
+          "201": { "description": "Created and ready (image, video)" },
+          "202": { "description": "Accepted; poll /assets/{id}/status (audio, pdf)" }
+        }
       }
     }
   },

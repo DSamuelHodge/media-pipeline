@@ -18,15 +18,15 @@ GitHub holds the code. Cloudflare serves the Worker, the UI in `public/`, R2, D1
 | Image | `originals/images/{id}.*` | Zone transforms on `media.hodgeluke.com/cdn-cgi/image/...` |
 | Video | `originals/video/{id}.*` | Original (preview URL is the file) |
 | Audio / `.m4a` | `originals/audio/{id}.*` | Whisper Large v3 Turbo → markdown + VTT |
-| PDF | `originals/pdfs/{id}.pdf` | Firecrawl `/parse` → markdown |
+| PDF | `originals/pdfs/{id}.pdf` | Firecrawl `/parse`, then Workers AI `toMarkdown` |
 
-`POST /upload` returns **202**. Poll `GET /assets/{id}/status` until `ready` or `failed`.
+Images and video are **ready** at insert (`201`). Audio and PDFs return **202**; poll `GET /assets/{id}/status` until `ready` or `failed`.
 
 ## Human
 
 1. Open https://ingest.hodgeluke.com
 2. Paste the upload token once (`pass show cloudflare/media-pipeline/upload-token`). It stays in this browser.
-3. Drop images, video, voice memos, or PDFs. Watch **In flight**, then the gallery.
+3. Drop images, video, voice memos, or PDFs. Images and video appear immediately; audio and PDFs show in **In flight** until ready.
 4. Open a card for preview, transcript, markdown, and public URLs.
 
 Reads are public. The token is only required to upload.
@@ -64,10 +64,10 @@ Point an OpenAPI client at `/openapi.json`. Firecrawl MCP is the PDF engine; thi
 ## Layout
 
 ```
-src/            Worker (upload, catalog, Whisper, Firecrawl, /i fallback)
+src/            Worker (upload, catalog, Whisper, Firecrawl)
 public/         Static library UI
 migrations/     D1 schema
-wrangler.jsonc  Bindings: R2, D1, Workflows, Images, Secrets Store, assets
+wrangler.jsonc  Bindings: R2, D1, Workflows, Secrets Store, assets
 ```
 
 R2 keys:
@@ -111,10 +111,8 @@ export CLOUDFLARE_ACCOUNT_ID="6c2dbbe47de58a74542ad9a5d9dd5b2b"
 npx wrangler deploy
 ```
 
-Image variants are served from the zone:
+Image variants are zone transforms on the public origin:
 
 ```
 https://media.hodgeluke.com/cdn-cgi/image/width=400,height=400,fit=cover,format=auto/{key}
 ```
-
-The Worker still exposes `/i/...` as a binding-based fallback.

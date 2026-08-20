@@ -74,13 +74,18 @@ export async function parsePdf(opts: {
   contentType: string;
 }): Promise<PdfParseResult> {
   if (opts.firecrawlKey) {
-    const markdown = await firecrawlParse({
-      apiKey: opts.firecrawlKey,
-      filename: opts.filename,
-      bytes: opts.bytes,
-      contentType: opts.contentType,
-    });
-    return { markdown, source: "firecrawl", chars: markdown.length };
+    try {
+      const markdown = await firecrawlParse({
+        apiKey: opts.firecrawlKey,
+        filename: opts.filename,
+        bytes: opts.bytes,
+        contentType: opts.contentType,
+      });
+      return { markdown, source: "firecrawl", chars: markdown.length };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "firecrawl parse failed";
+      console.error(JSON.stringify({ pdf: opts.filename, firecrawl: message }));
+    }
   }
 
   const markdown = await workersAiPdfToMarkdown(opts.ai, opts.filename, opts.bytes);

@@ -25,16 +25,16 @@ GET /assets/{id}/transcript   # audio after status=ready
 GET /assets/{id}/vtt
 POST /upload                  # multipart: file (required), title, kind
 
-Kinds: image, video, audio, pdf. If kind is omitted, it is inferred from MIME/extension.
+Kinds: image, video, audio, pdf. Kind is inferred from MIME then extension. The kind field is used only when inference fails.
 
-POST /upload returns 202 immediately. Poll GET /assets/{id}/status until status is ready or failed.
+Images and video return 201 with status=ready. Audio and PDFs return 202. Poll GET /assets/{id}/status until status is ready or failed.
 
 ## Processing
 
 - image: stored; serve via media.hodgeluke.com/cdn-cgi/image/...
-- video: stored; optional /cdn-cgi/media once transformations are enabled
+- video: stored; preview is the original
 - audio: Whisper Large v3 Turbo → markdown + VTT
-- pdf: Firecrawl /parse → markdown
+- pdf: Firecrawl /parse, then Workers AI toMarkdown
 
 ## Example
 
